@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { TierUpgrade } from '@/components/TierUpgrade';
 import { motion } from 'framer-motion';
+import { Dialog } from '@headlessui/react';
 
 type Event = {
   id: string;
@@ -25,30 +26,19 @@ const tierColors: Record<Event['tier'], string> = {
 };
 
 export default function EventsPage() {
-  const { user, isLoaded } = useUser();
+  const { user } = useUser();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userTier, setUserTier] = useState<Event['tier'] | null>(null);
+  const [selectedTier, setSelectedTier] = useState<string>('all');
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const userTier = (user?.unsafeMetadata?.tier as Event['tier']) || 'free';
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
-
-    const tier = user.unsafeMetadata?.tier as Event['tier'] | undefined;
-
-    if (!tier || !tierOrder.includes(tier)) {
-      console.warn('Tier not set or invalid in Clerk metadata');
-      return;
-    }
-
-    setUserTier(tier);
-
-    const allowedTiers = tierOrder.slice(0, tierOrder.indexOf(tier) + 1);
+    if (!user) return;
 
     const fetchEvents = async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .in('tier', allowedTiers);
+      const { data, error } = await supabase.from('events').select('*');
 
       if (error) {
         console.error('Error fetching events:', error.message);
@@ -60,68 +50,143 @@ export default function EventsPage() {
     };
 
     fetchEvents();
-  }, [isLoaded, user]);
+  }, [user]);
+
+  const filteredEvents = selectedTier === 'all'
+    ? events
+    : events.filter((event) => event.tier === selectedTier);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-100 to-white py-12 px-4">
+    <main className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 py-10 px-4">
       <div className="max-w-6xl mx-auto">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-3xl font-bold text-center"
-        >
-          Your Tier Events
-        </motion.h1>
+        <h1 className="text-4xl font-bold text-center mb-4 text-gray-800">Your Tier Events</h1>
 
-        {/* Tier Badge */}
-        {userTier && (
-          <div className="text-center mt-3">
-            <span
-              className={`inline-block px-4 py-2 text-base font-semibold rounded-full ${tierColors[userTier]}`}
-            >
-              Current Tier: {userTier.toUpperCase()}
-            </span>
-          </div>
-        )}
+        <div className="flex justify-center mb-4">
+          <span className={`px-4 py-1 rounded-full font-medium text-sm ${tierColors[userTier]}`}>
+            Current Tier: {userTier.toUpperCase()}
+          </span>
+        </div>
 
-        {/* Tier Switcher */}
         <TierUpgrade />
 
-        {/* Event Cards */}
+        {/* Tier Filter Tabs */}
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
+          {['all', ...tierOrder].map((tier) => (
+            <button
+              key={tier}
+              onClick={() => setSelectedTier(tier)}
+              className={`px-4 py-1 rounded-full text-sm font-medium transition-all duration-200 ${
+                selectedTier === tier
+                  ? 'bg-black text-white'
+                  : 'bg-white border text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              {tier === 'all' ? 'All Tiers' : tier.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
-          <p className="text-center mt-8 text-gray-500">Loading events...</p>
+          <p className="text-center text-lg">Loading events...</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-            {events.map((event, index) => (
-              <motion.div
-                key={event.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex flex-col h-full rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-white hover:shadow-2xl transition-all duration-300"
-              >
-                <img
-                  src={event.image_url}
-                  alt={event.title}
-                  className="w-full h-40 object-cover"
-                />
-                <div className="p-4 space-y-2 flex flex-col flex-grow">
-                  <span
-                    className={`inline-block text-xs px-3 py-1 rounded-full font-semibold ${tierColors[event.tier]}`}
+          tierOrder.map((tier) => {
+            const tierEvents = filteredEvents.filter((e) => e.tier === tier);
+            if (tierEvents.length === 0) return null;
+
+            return (
+              <section key={tier} className="mb-12">
+                <div className="sticky top-0 bg-slate-100/90 z-10 backdrop-blur py-2">
+                  <h2
+                    className={`text-xl font-semibold ${
+                      tierColors[tier]
+                    } inline-block px-4 py-1 rounded`}
                   >
-                    {event.tier.toUpperCase()}
-                  </span>
-                  <h2 className="text-xl font-bold text-gray-800">{event.title}</h2>
-                  <p className="text-sm text-gray-600 flex-grow">{event.description}</p>
-                  <p className="text-sm text-gray-500">
-                    📅 {new Date(event.event_date).toLocaleString()}
-                  </p>
+                    {tier.toUpperCase()} Tier Events
+                  </h2>
                 </div>
-              </motion.div>
-            ))}
-          </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                  {tierEvents.map((event, index) => {
+                    const isLocked =
+                      tierOrder.indexOf(event.tier) > tierOrder.indexOf(userTier);
+
+                    return (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        onClick={() => !isLocked && setSelectedEvent(event)}
+                        className={`relative cursor-pointer flex flex-col h-full rounded-2xl overflow-hidden border bg-white transition-all duration-300 ${
+                          isLocked
+                            ? 'opacity-50 pointer-events-none'
+                            : 'shadow-md hover:shadow-2xl'
+                        }`}
+                      >
+                        <img
+                          src={event.image_url}
+                          alt={event.title}
+                          className="w-full h-40 object-cover"
+                        />
+                        <div className="p-4 space-y-2 flex flex-col flex-grow">
+                          <span
+                            className={`inline-block text-xs px-3 py-1 rounded-full font-semibold ${tierColors[event.tier]}`}
+                          >
+                            {event.tier.toUpperCase()}
+                          </span>
+                          <h2 className="text-lg font-bold text-gray-800">{event.title}</h2>
+                          <p className="text-sm text-gray-600 flex-grow line-clamp-2">
+                            {event.description}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            📅 {new Date(event.event_date).toLocaleString()}
+                          </p>
+                        </div>
+
+                        {isLocked && (
+                          <div className="absolute inset-0 bg-white/80 flex items-center justify-center text-center text-sm font-semibold text-gray-700 p-4">
+                            🔒 Upgrade to {event.tier.toUpperCase()} to access this event
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })
         )}
+
+        {/* Modal */}
+        <Dialog
+          open={!!selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-lg rounded-xl bg-white shadow-xl p-6 space-y-4">
+              <Dialog.Title className="text-2xl font-bold text-gray-800">
+                {selectedEvent?.title}
+              </Dialog.Title>
+              <img
+                src={selectedEvent?.image_url}
+                alt={selectedEvent?.title}
+                className="w-full h-48 object-cover rounded-lg"
+              />
+              <p className="text-sm text-gray-600">{selectedEvent?.description}</p>
+              <p className="text-sm text-gray-500">
+                📅 {new Date(selectedEvent?.event_date || '').toLocaleString()}
+              </p>
+              <button
+                onClick={() => setSelectedEvent(null)}
+                className="mt-2 text-sm text-blue-600 hover:underline"
+              >
+                Close
+              </button>
+            </Dialog.Panel>
+          </div>
+        </Dialog>
       </div>
     </main>
   );
