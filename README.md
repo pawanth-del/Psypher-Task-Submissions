@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tier-Based Event Showcase 
 
-## Getting Started
+This is a Next.js 14 application that displays events based on the logged-in user's tier using Clerk for authentication and Supabase for backend data storage.
 
-First, run the development server:
+---
+
+## Setup Instructions
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/pawangt2812-ui/tier-events.git
+cd tier-events
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Set Up Environment Variables
+
+Create a `.env.local` file at the root with the following content:
+
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_YOUR_CLERK_PUBLISHABLE_KEY
+CLERK_SECRET_KEY=sk_test_YOUR_CLERK_SECRET_KEY
+NEXT_PUBLIC_SUPABASE_URL=https://udgjyffyuenfhbxzhbwe.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+>  You can find these keys in:
+> - **Clerk Dashboard** → API Keys section  
+> - **Supabase Project Settings** → API → Project URL & anon/public key
+
+### 4. Run the Dev Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app will be live at:  
+ [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+##  Demo User Credentials
 
-## Learn More
+You can log in using these demo accounts for testing different tiers:
 
-To learn more about Next.js, take a look at the following resources:
+| Tier      | Email                    | Password           |
+|-----------|--------------------------|--------------------|
+| Free      | free_demo@demo.com       | Free_demo@123      |     
+| Silver    | silver_demo@demo.com     | Silver_demo@123    |
+| Gold      | gold_demo@demo.com       | Gold_demo@123      |
+| Platinum  | platinum_demo@demo.com   | Platinum_demo@123  |   
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Use these accounts to explore features unlocked at each membership tier.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Next.js 14 (App Router)
+- Tailwind CSS
+- Clerk (Authentication)
+- Supabase (Database)
+- Framer Motion (Animations)
+- Headless UI (Modal)
+- React Hot Toast (Notifications)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## ✨ Features
+
+- Tier-based access control
+- Sticky tier headers
+- Modal event preview
+- Real-time search & filter
+- Tier comparison grid
+- Beautiful responsive UI
+
+---
+
+## Supabase Table Structure
+
+The `events` table in Supabase should have the following structure:
+
+| Column Name   | Type       | Description                                        |
+|---------------|------------|----------------------------------------------------|
+| id            | UUID       | Unique identifier for the event (Primary Key)      |
+| title         | Text       | Title of the event                                 |
+| description   | Text       | Short description of the event                     |
+| event_date    | Timestamp  | Date and time of the event                         |
+| image_url     | Text       | URL to the image displayed on the card             |
+| tier          | Enum       | Access tier (`free`, `silver`, `gold`, `platinum`) |
+
+Make sure the `tier` column is of ENUM type and matches the available tiers for accurate filtering.
