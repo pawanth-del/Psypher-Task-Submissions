@@ -1,7 +1,10 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Navbar from '@/components/Navbar'; // ✅ import
+import Navbar from '@/components/Navbar';
+import { ReactNode } from 'react';
+import { Providers } from '@/components/Providers';
+
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -10,17 +13,15 @@ export const metadata = {
   description: 'Events based on your membership tier.',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider>
       <html lang="en">
         <body className={inter.className}>
-          <Navbar /> {/* ✅ show Navbar on every page */}
-          {children}
+          <Providers> 
+            <Navbar />
+            {children}
+          </Providers>
         </body>
       </html>
     </ClerkProvider>

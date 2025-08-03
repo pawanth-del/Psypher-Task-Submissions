@@ -1,7 +1,8 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { TierUpgrade } from '@/components/TierUpgrade';
 import { motion } from 'framer-motion';
@@ -25,27 +26,28 @@ const tierColors: Record<Event['tier'], string> = {
   platinum: 'bg-purple-200 text-purple-800',
 };
 
+const fetchEvents = async (): Promise<Event[]> => {
+  const { data, error } = await supabase.from('events').select('*');
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
 export default function EventsPage() {
   const { user } = useUser();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedTier, setSelectedTier] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const userTier = (user?.publicMetadata?.tier as Event['tier']) || 'free';
 
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchEvents = async () => {
-      const { data, error } = await supabase.from('events').select('*');
-      if (error) console.error('Error fetching events:', error.message);
-      else setEvents(data || []);
-      setLoading(false);
-    };
-
-    fetchEvents();
-  }, [user]);
+  const {
+    data: events = [],
+    isLoading,
+    error,
+  } = useQuery<Event[]>({
+    queryKey: ['events'],
+    queryFn: fetchEvents,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const filteredEvents =
     selectedTier === 'all'
@@ -55,11 +57,15 @@ export default function EventsPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 py-10 px-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-4 text-gray-800">Your Tier Events</h1>
+        <h1 className="text-4xl font-bold text-center mb-4 text-gray-800">
+          Your Tier Events
+        </h1>
 
-        {/* User Tier Badge */}
+        {/* Tier Badge */}
         <div className="flex justify-center mb-4">
-          <span className={`px-4 py-1 rounded-full font-medium text-sm ${tierColors[userTier]}`}>
+          <span
+            className={`px-4 py-1 rounded-full font-medium text-sm ${tierColors[userTier]}`}
+          >
             Current Tier: {userTier.toUpperCase()}
           </span>
         </div>
@@ -83,8 +89,12 @@ export default function EventsPage() {
           ))}
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <p className="text-center text-lg">Loading events...</p>
+        ) : error ? (
+          <p className="text-center text-red-500 text-sm">
+            Failed to load events. Please try again later.
+          </p>
         ) : (
           tierOrder.map((tier) => {
             const tierEvents = filteredEvents.filter((e) => e.tier === tier);
@@ -119,6 +129,7 @@ export default function EventsPage() {
                         }`}
                       >
                         <img
+                          loading="lazy"
                           src={event.image_url}
                           alt={event.title}
                           className="w-full h-40 object-cover"
@@ -165,6 +176,7 @@ export default function EventsPage() {
                 {selectedEvent?.title}
               </Dialog.Title>
               <img
+                loading="lazy"
                 src={selectedEvent?.image_url}
                 alt={selectedEvent?.title}
                 className="w-full h-48 object-cover rounded-lg"
