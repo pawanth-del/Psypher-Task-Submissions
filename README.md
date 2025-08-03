@@ -9,8 +9,8 @@ This is a Next.js 14 application that displays events based on the logged-in use
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/pawangt2812-ui/tier-events.git
-cd tier-events
+git clone https://github.com/pawanth-del/Psypher-Task-Submissions
+cd Psypher-Task-Submissions
 ```
 
 ### 2. Install Dependencies
@@ -68,7 +68,6 @@ Use these accounts to explore features unlocked at each membership tier.
 - Supabase (Database)
 - Framer Motion (Animations)
 - Headless UI (Modal)
-- React Hot Toast (Notifications)
 
 ---
 
@@ -76,9 +75,6 @@ Use these accounts to explore features unlocked at each membership tier.
 
 - Tier-based access control
 - Sticky tier headers
-- Modal event preview
-- Real-time search & filter
-- Tier comparison grid
 - Beautiful responsive UI
 
 ---
@@ -97,3 +93,4 @@ The `events` table in Supabase should have the following structure:
 | tier          | Enum       | Access tier (`free`, `silver`, `gold`, `platinum`) |
 
 Make sure the `tier` column is of ENUM type and matches the available tiers for accurate filtering.
+
