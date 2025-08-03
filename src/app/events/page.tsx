@@ -32,35 +32,32 @@ export default function EventsPage() {
   const [selectedTier, setSelectedTier] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  const userTier = (user?.unsafeMetadata?.tier as Event['tier']) || 'free';
+  const userTier = (user?.publicMetadata?.tier as Event['tier']) || 'free';
 
   useEffect(() => {
     if (!user) return;
 
     const fetchEvents = async () => {
       const { data, error } = await supabase.from('events').select('*');
-
-      if (error) {
-        console.error('Error fetching events:', error.message);
-      } else {
-        setEvents(data || []);
-      }
-
+      if (error) console.error('Error fetching events:', error.message);
+      else setEvents(data || []);
       setLoading(false);
     };
 
     fetchEvents();
   }, [user]);
 
-  const filteredEvents = selectedTier === 'all'
-    ? events
-    : events.filter((event) => event.tier === selectedTier);
+  const filteredEvents =
+    selectedTier === 'all'
+      ? events
+      : events.filter((event) => event.tier === selectedTier);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 py-10 px-4">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold text-center mb-4 text-gray-800">Your Tier Events</h1>
 
+        {/* User Tier Badge */}
         <div className="flex justify-center mb-4">
           <span className={`px-4 py-1 rounded-full font-medium text-sm ${tierColors[userTier]}`}>
             Current Tier: {userTier.toUpperCase()}
@@ -97,9 +94,7 @@ export default function EventsPage() {
               <section key={tier} className="mb-12">
                 <div className="sticky top-0 bg-slate-100/90 z-10 backdrop-blur py-2">
                   <h2
-                    className={`text-xl font-semibold ${
-                      tierColors[tier]
-                    } inline-block px-4 py-1 rounded`}
+                    className={`text-xl font-semibold ${tierColors[tier]} inline-block px-4 py-1 rounded`}
                   >
                     {tier.toUpperCase()} Tier Events
                   </h2>
