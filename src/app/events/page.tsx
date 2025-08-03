@@ -1,0 +1,128 @@
+'use client';
+
+import { useUser } from '@clerk/nextjs';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { TierUpgrade } from '@/components/TierUpgrade';
+import { motion } from 'framer-motion';
+
+type Event = {
+  id: string;
+  title: string;
+  description: string;
+  event_date: string;
+  image_url: string;
+  tier: 'free' | 'silver' | 'gold' | 'platinum';
+};
+
+const tierOrder = ['free', 'silver', 'gold', 'platinum'] as const;
+
+const tierColors: Record<Event['tier'], string> = {
+  free: 'bg-gray-200 text-gray-800',
+  silver: 'bg-blue-200 text-blue-800',
+  gold: 'bg-yellow-200 text-yellow-800',
+  platinum: 'bg-purple-200 text-purple-800',
+};
+
+export default function EventsPage() {
+  const { user, isLoaded } = useUser();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [userTier, setUserTier] = useState<Event['tier'] | null>(null);
+
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+
+    const tier = user.unsafeMetadata?.tier as Event['tier'] | undefined;
+
+    if (!tier || !tierOrder.includes(tier)) {
+      console.warn('Tier not set or invalid in Clerk metadata');
+      return;
+    }
+
+    setUserTier(tier);
+
+    const allowedTiers = tierOrder.slice(0, tierOrder.indexOf(tier) + 1);
+
+    const fetchEvents = async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .in('tier', allowedTiers);
+
+      if (error) {
+        console.error('Error fetching events:', error.message);
+      } else {
+        setEvents(data || []);
+      }
+
+      setLoading(false);
+    };
+
+    fetchEvents();
+  }, [isLoaded, user]);
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-slate-100 to-white py-12 px-4">
+      <div className="max-w-6xl mx-auto">
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-3xl font-bold text-center"
+        >
+          Your Tier Events
+        </motion.h1>
+
+        {/* Tier Badge */}
+        {userTier && (
+          <div className="text-center mt-3">
+            <span
+              className={`inline-block px-4 py-2 text-base font-semibold rounded-full ${tierColors[userTier]}`}
+            >
+              Current Tier: {userTier.toUpperCase()}
+            </span>
+          </div>
+        )}
+
+        {/* Tier Switcher */}
+        <TierUpgrade />
+
+        {/* Event Cards */}
+        {loading ? (
+          <p className="text-center mt-8 text-gray-500">Loading events...</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+            {events.map((event, index) => (
+              <motion.div
+                key={event.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="flex flex-col h-full rounded-2xl overflow-hidden shadow-lg border border-gray-200 bg-white hover:shadow-2xl transition-all duration-300"
+              >
+                <img
+                  src={event.image_url}
+                  alt={event.title}
+                  className="w-full h-40 object-cover"
+                />
+                <div className="p-4 space-y-2 flex flex-col flex-grow">
+                  <span
+                    className={`inline-block text-xs px-3 py-1 rounded-full font-semibold ${tierColors[event.tier]}`}
+                  >
+                    {event.tier.toUpperCase()}
+                  </span>
+                  <h2 className="text-xl font-bold text-gray-800">{event.title}</h2>
+                  <p className="text-sm text-gray-600 flex-grow">{event.description}</p>
+                  <p className="text-sm text-gray-500">
+                    📅 {new Date(event.event_date).toLocaleString()}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
